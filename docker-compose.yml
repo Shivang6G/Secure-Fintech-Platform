@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fintech_postgres
+    environment:
+      POSTGRES_DB: fintech_engine
+      POSTGRES_USER: engine_admin
+      POSTGRES_PASSWORD: local_dev_secret_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: fintech_redis
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fintech_api
+    volumes:
+      - ./backend:/app
+    environment:
+      PYTHONPATH: /app/src
+      DATABASE_URL: postgresql+asyncpg://engine_admin:local_dev_secret_password@postgres:5432/fintech_engine
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: "local_dev_only_change_me_in_every_other_environment"
+      LOCAL_KEK_HEX: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:
