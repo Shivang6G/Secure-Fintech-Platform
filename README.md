@@ -1,4 +1,8 @@
-# Titanium Core — Secure Unified Financial & Investment Management Platform
+﻿# Titanium Core - Secure Unified Financial & Investment Management Platform
+
+## Team
+Kanisha Yadav (Team Lead) | Anshika Sharma | Shivang Chaurasia | Shrishti Shahi
+BBDITM, Lucknow | AKTU College Code: 054 | Guide: Mr. Arvind Gautam
 
 This repository is the actual, buildable implementation that has been started
 against the full platform vision described in
