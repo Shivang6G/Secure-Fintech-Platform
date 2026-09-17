@@ -2,6 +2,9 @@
 from datetime import date
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.responses import StreamingResponse
+import csv
+import io
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select, func, cast, Date
@@ -457,4 +460,31 @@ async def export_ledger_csv(org_id: uuid.UUID, user: User = Depends(get_current_
         iter([buffer.getvalue()]),
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=ledger_report_{org_id}.csv"},
+    )
+
+@router.get("/organizations/{org_id}/reports/ledger.csv")
+async def export_ledger_csv(org_id: uuid.UUID, user: User = Depends(get_current_user), session: AsyncSession = Depends(get_db_session)):
+    stmt = (
+        select(JournalEntry, Posting, Account)
+        .join(Posting, Posting.journal_entry_id == JournalEntry.id)
+        .join(Account, Account.id == Posting.account_id)
+        .where(JournalEntry.organization_id == org_id)
+        .order_by(JournalEntry.entry_date.desc())
+    )
+    result = await session.execute(stmt)
+    rows = result.all()
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(["Date", "Reference", "Narration", "Account", "Classification", "Direction", "Amount"])
+    for entry, posting, account in rows:
+        writer.writerow([
+            entry.entry_date, entry.reference_number, entry.narration,
+            account.name, account.classification, posting.direction, posting.amount
+        ])
+    buffer.seek(0)
+    return StreamingResponse(
+        buffer,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=ledger_report.csv"}
     )
